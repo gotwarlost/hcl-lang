@@ -129,7 +129,6 @@ func (d *PathDecoder) decodeReferenceTargetsForBody(body hcl.Body, parentBlock *
 			}
 			attrSchema = bodySchema.AnyAttribute
 		}
-
 		refs = append(refs, d.decodeReferenceTargetsForAttribute(attr, attrSchema)...)
 	}
 
@@ -145,7 +144,11 @@ func (d *PathDecoder) decodeReferenceTargetsForBody(body hcl.Body, parentBlock *
 		iRefs := d.decodeReferenceTargetsForBody(blk.Body, blk, mergedSchema)
 		refs = append(refs, iRefs...)
 
-		addr, ok := resolveBlockAddress(blk.Block, bSchema)
+		var pb *hcl.Block
+		if parentBlock != nil {
+			pb = parentBlock.Block
+		}
+		addr, ok := resolveBlockAddress(blk.Block, bSchema, pb)
 		if !ok {
 			// skip unresolvable address
 			continue
@@ -763,7 +766,7 @@ func resolveAttributeAddress(attr *hcl.Attribute, addr schema.Address) (lang.Add
 	return address, true
 }
 
-func resolveBlockAddress(block *hcl.Block, blockSchema *schema.BlockSchema) (lang.Address, bool) {
+func resolveBlockAddress(block *hcl.Block, blockSchema *schema.BlockSchema, parentBlock *hcl.Block) (lang.Address, bool) {
 	address := make(lang.Address, 0)
 
 	if blockSchema.Address == nil {
@@ -783,6 +786,11 @@ func resolveBlockAddress(block *hcl.Block, blockSchema *schema.BlockSchema) (lan
 				return lang.Address{}, false
 			}
 			stepName = block.Labels[step.Index]
+		case schema.ParentLabelStep:
+			if parentBlock == nil || len(parentBlock.Labels)-1 < int(step.Index) {
+				return lang.Address{}, false
+			}
+			stepName = parentBlock.Labels[step.Index]
 		case schema.AttrValueStep:
 			content := ast.DecodeBody(block.Body, blockSchema.Body)
 

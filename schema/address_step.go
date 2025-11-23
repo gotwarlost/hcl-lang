@@ -25,6 +25,14 @@ func (LabelStep) isAddrStepImpl() addrStepImplSigil {
 	return addrStepImplSigil{}
 }
 
+type ParentLabelStep struct {
+	Index uint
+}
+
+func (ParentLabelStep) isAddrStepImpl() addrStepImplSigil {
+	return addrStepImplSigil{}
+}
+
 type AttrNameStep struct{}
 
 func (AttrNameStep) isAddrStepImpl() addrStepImplSigil {
