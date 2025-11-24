@@ -131,9 +131,16 @@ func localTargetMatches(ctx context.Context, target Target, ref schema.Reference
 
 func absTargetMatches(ctx context.Context, target Target, ref schema.Reference, prefix string, outermostBodyRng, originRng hcl.Range) bool {
 	if len(target.Addr) > 0 && strings.HasPrefix(target.Addr.String(), prefix) {
-		// Reject references to block's own fields from within the body
-		if referenceTargetIsInRange(target, outermostBodyRng) {
-			return false
+		// If target explicit specifies a range from which it is accessible, honor that
+		if target.TargetableFromRangePtr != nil {
+			if !target.TargetableFromRangePtr.ContainsPos(originRng.Start) {
+				return false
+			}
+		} else {
+			// Reject references to block's own fields from within the body
+			if referenceTargetIsInRange(target, outermostBodyRng) {
+				return false
+			}
 		}
 
 		if target.MatchesConstraint(ref) || target.NestedTargets.containsMatch(ctx, ref, prefix, outermostBodyRng, originRng) {
